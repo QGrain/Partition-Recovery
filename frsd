@@ -1,0 +1,71 @@
+# Developed by Zhiyu Zhang, Dian Team, HUST
+
+getHelp() {
+    echo -e "Usage: frsd [OPTIONS] COMMAND [ARGS]...\n"
+    echo -e "Options:"
+    echo -e "    --force\t\t\tTo execute in force"
+    echo -e "    -h, --help\t\t\tShow this message and exit\n"
+
+    echo -e "Command:"
+    echo -e "    init, \t\t\tInitialize the configurations"
+    echo -e "    backup, \t\t\tBackup the specific partition on disk"
+    echo -e "    recover, \t\t\tRecover the specific partition on disk\n"
+
+}
+
+quit() {
+    exit 1
+}
+
+if [[ $# -eq 1 ]]
+then
+if test $1 = "init"
+then
+    if [[ $# -eq 2 ]]
+    then
+	if test $2 = "--force"
+	then
+	    rm -r $HOME/.frsd
+	fi
+    elif [ -d "$HOME/.frsd" ]
+    then
+	echo -e "Already initialized! Please add --force option to reinit. Attention: This will overwrite the previous configurations!\n"
+	quit
+    fi
+
+    echo -e "Initializing Fast Recovery System at $HOME/.frsd"
+    mkdir ~/.frsd
+    
+    echo -e "Please set remote server for System Image storing:"
+    read serv_addr
+    echo "$serv_addr" > $HOME/.frsd/.server_address
+    echo -e "Strat to build authorization between localhost and remote server!\n"
+    ssh-keygen
+    ssh-copy-id -i $HOME/.ssh/id_rsa.pub ${serv_addr}    
+
+    echo -e "Please set Machine ID to make its Image Distinguishable:"
+    read machine_id
+    echo "$machine_id" > $HOME/.frsd/.machine_id
+
+    echo -e "Set success! Type frsd -h for more commands\n"
+    quit
+elif test $1 = "backup"
+then
+    serv_addr=$(cat $HOME/.frsd/.server_address)
+    machine_id=$(cat $HOME/.frsd/.machine_id)
+    echo -e "Executing dd if=/dev/sda1 bs=16K | gzip -9 > $HOME/.frsd/${machine_id}.img.gz\n"
+ 
+    echo -e "dd backup and compress finished. Start to store the image on remote server.\n"
+    echo -e "Executing scp $HOME/.frsd/${machine_id}.img.gz ${serv_addr}:/home/server/\n"
+    quit
+elif test $1 = "recover"
+then
+    serv_addr=$(cat $HOME/.frsd/.server_address)
+    machine_id=$($HOME/.frsd/.machine_id)
+    echo -e "Executing ssh ${serv_addr} \"cat /home/sever/${machine_id}.img.gz \" | gunzip -c | dd of=/dev/sda1 bs=16K\n"
+    quit
+fi
+fi
+
+# Call getHelp() by default
+getHelp
