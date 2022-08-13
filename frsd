@@ -1,4 +1,5 @@
 # Developed by Zhiyu Zhang, Dian Team, HUST
+# 2020-09-18
 
 getHelp() {
     echo -e "Usage: frsd [OPTIONS] COMMAND [ARGS]...\n"
